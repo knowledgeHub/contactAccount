@@ -1,0 +1,70 @@
+#%RAML 1.0 DataType
+
+type: object
+description: Request for add contact
+required: true
+additionalProperties: true
+properties: 
+  Identification:
+    type: object
+    required: true
+    additionalProperties: true
+    properties:
+      FirstName:
+        type: string
+        required: false
+      LastName:
+        type: string
+        required: false
+      DOB:
+        type: string
+        required: false
+      Gender:
+        type: string
+        required: false
+        enum: [F,M]
+      Title:
+        type: string
+        required: false
+  Address:
+    type: array
+    required: false
+    items:
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          required: false
+        number:
+          type: number
+          required: false
+        street:
+          type: string
+          required: false
+        Unit:
+          type: string
+          required: false
+        City:
+          type: string
+          required: false
+        State:
+          type: string
+          required: false
+        zipcode:
+          type: string
+          required: false
+  Communication:
+    type: array
+    required: false
+    items:
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          required: false
+        value:
+          type: string
+          required: false
+        preferred:
+          type: string
+          required: false

@@ -1,0 +1,64 @@
+#%RAML 1.0
+title: Sample API
+
+/contact:
+  post:
+    body: 
+      application/json: 
+        type: !include DataTypes/Request.raml
+        example: !include Examples/sample.json
+    responses: 
+      201:
+        body: 
+          application/json:
+            type: !include DataTypes/Response.raml
+            example: !include Examples/200.json
+      500:
+        body:
+          application/json:  
+            type: !include DataTypes/Response.raml
+            example: !include Examples/500.json
+  /{id}:
+    uriParameters: 
+      id: string
+    get:
+      responses: 
+        200:
+          body: 
+            application/json:
+              type: !include DataTypes/Request.raml
+              example: !include Examples/sample.json
+        500:
+          body:
+            application/json:  
+              type: !include DataTypes/Response.raml
+              example: !include Examples/500.json
+    put:
+      body: 
+        application/json: 
+          type: !include DataTypes/Request.raml
+          example: !include Examples/sample.json
+      responses: 
+        202:
+          body: 
+            application/json:
+              type: !include DataTypes/Response.raml
+              example: !include Examples/200.json
+        500:
+          body:
+            application/json:  
+              type: !include DataTypes/Response.raml
+              example: !include Examples/500.json
+    delete:
+      responses: 
+        200:
+          body: 
+            application/json:
+              type: !include DataTypes/Response.raml
+              example: !include Examples/200.json
+        500:
+          body:
+            application/json:  
+              type: !include DataTypes/Response.raml
+              example: !include Examples/500.json
+            

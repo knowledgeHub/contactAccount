@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="addContactFlow" doc:id="828dde9f-d1d3-41f5-ac04-6f81f097511c">
+		<db:insert doc:name="Insert Contact" doc:id="f4109a2d-58a5-4c1b-927b-db5c508095f2"
+			config-ref="Contact_Database_Config" target="insertResponse"
+			autoGenerateKeys="true">
+			<db:sql>INSERT INTO CONTACT(FIRSTNAME, LASTNAME, DOB, TITLE, GENDER)
+				VALUES (:FIRSTNAME, :LASTNAME, :DOB, :TITLE, :GENDER)</db:sql>
+			<db:input-parameters><![CDATA[#[{
+	FIRSTNAME: payload.Identification.FirstName,
+	LASTNAME: payload.Identification.LastName,
+	DOB: payload.Identification.DOB,
+	GENDER: payload.Identification.Gender,
+	TITLE: payload.Identification.Title
+}]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names>
+				<db:auto-generated-keys-column-name
+					value="ID" />
+			</db:auto-generated-keys-column-names>
+		</db:insert>
+		<logger level="INFO" doc:name="Log response"
+			doc:id="1bd1e0e2-0fdb-4a31-a4c6-85e878739390" message="ID is #[vars.insertResponse.generatedKeys]" />
+		<foreach doc:name="For Each" doc:id="2136e689-eac7-4e71-b0f1-eb1e4df2e996"
+			collection="payload.Address">
+			<db:insert doc:name="Insert Address" doc:id="d0142d91-7ff6-4a70-ad6d-1a0a271f5e6a" config-ref="Contact_Database_Config" autoGenerateKeys="true">
+			<db:sql>INSERT INTO ADDRESS(PERSON, TYPE, NUMBER, STREET, UNIT, CITY, STATE, ZIPCODE) VALUES (:PERSON, :TYPE, :NUMBER, :STREET, :UNIT, :CITY, :STATE, :ZIPCODE)</db:sql>
+			<db:input-parameters><![CDATA[#[{
+	PERSON: vars.insertResponse.generatedKeys.ID,
+	TYPE: payload."type",
+	NUMBER: payload.number,
+	STREET: payload.street,
+	UNIT: payload.Unit,
+	CITY: payload.City,
+	STATE: payload.State,
+	ZIPCODE: payload.zipcode
+}]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names>
+				<db:auto-generated-keys-column-name value="ID" />
+			</db:auto-generated-keys-column-names>
+		</db:insert>
+		</foreach>
+		<foreach doc:name="For Each" doc:id="1036e44e-341e-4627-90bc-4c19dd49f688" collection="payload.Communication">
+			<db:insert doc:name="Insert Communication" doc:id="b852b84b-b7d6-4450-901c-4a98d823819d" config-ref="Contact_Database_Config" autoGenerateKeys="true">
+			<db:sql>INSERT INTO COMMUNICATION(PERSON, TYPE, VALUE, PREFERRED) VALUES (:PERSON, :TYPE, :VALUE, :PREFERRED)</db:sql>
+			<db:input-parameters><![CDATA[#[{
+	PERSON: vars.insertResponse.generatedKeys.ID,
+	TYPE: payload."type",
+	VALUE: payload.value,
+	PREFERRED: payload.preferred
+}]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names>
+				<db:auto-generated-keys-column-name value="ID" />
+			</db:auto-generated-keys-column-names>
+</db:insert>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="9326dbc0-4ba0-4c33-bff3-fa1ae57a95c3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 0,
+	message: "success",
+	id: vars.insertResponse.generatedKeys.ID
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7af0d052-806b-4ff8-8699-7e610d55a56e" >
+				<logger level="ERROR" doc:name="Log error" doc:id="f8427904-c39c-491b-b341-901f185269f0" message="Error occured during the record adding "/>
+				<ee:transform doc:name="Transform Message" doc:id="87a90835-5be2-412e-a6a1-e22f3420f218" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 1,
+	message: "Internal server error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="removeContactFlow" doc:id="6250b040-5737-4354-b22a-d6b3861f23e0" >
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set id Variable" doc:id="05ddc1ac-f258-47a4-969b-c3b19fa61b4c" variableName="id"/>
+		<db:delete doc:name="Delete Contact" doc:id="9b522dac-1078-4861-b61b-9cb197459629" config-ref="Contact_Database_Config">
+			<db:sql >DELETE FROM PERSON WHERE ID=:ID;</db:sql>
+			<db:input-parameters ><![CDATA[#[ID: vars.id]]]></db:input-parameters>
+		</db:delete>
+		<db:delete doc:name="Delete Contact Addresses" doc:id="27ffed88-b397-4413-bbb6-1dbc6ebe84d9" config-ref="Contact_Database_Config">
+			<db:sql >DELETE FROM ADDRESS WHERE PERSON = :PERSON </db:sql>
+			<db:input-parameters ><![CDATA[#[PERSON: vars.id]]]></db:input-parameters>
+		</db:delete>
+		<db:delete doc:name="Delete Contact Communications" doc:id="d4c92c69-ddf1-4b1f-be88-be1463d8030d" config-ref="Contact_Database_Config">
+			<db:sql >DELETE FROM COMMUNICATIONS WHERE PERSON = :PERSON </db:sql>
+			<db:input-parameters ><![CDATA[#[PERSON: vars.id]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="025f0a70-dda1-4568-8106-38548968c587" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 0,
+	message: "success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="52bf2290-c694-45a4-a488-0cff96993742" >
+				<logger level="INFO" doc:name="Log error" doc:id="2819987a-f3d3-4af2-8be2-e73a7269d4e2" message="Error occured during the removing the record"/>
+				<ee:transform doc:name="Transform Message" doc:id="4e0e214e-44b0-4834-96dd-d14189c2430b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 1,
+	message: "Internal server error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="getContactFlow" doc:id="1873307c-3047-42ff-9e28-5b5972159846" >
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set id Variable" doc:id="05ddc1ac-f258-47a4-969b-c3b19fa61b4c" variableName="id"/>
+		<db:select doc:name="Select Contact" doc:id="6bf07a51-24ac-48e8-85b5-d73feeb47e57" config-ref="Contact_Database_Config" target="person">
+			<db:sql >SELECT * FROM PERSON WHERE ID = :ID</db:sql>
+			<db:input-parameters ><![CDATA[#[ID: vars.id]]]></db:input-parameters>
+		</db:select>
+		<db:select doc:name="Select Contact" doc:id="7787bab9-9da6-4ff2-93b7-9ac08e0fb1cb" config-ref="Contact_Database_Config" target="address">
+			<db:sql >SELECT * FROM ADDRESS WHERE PERSON = :ID</db:sql>
+			<db:input-parameters ><![CDATA[#[ID: vars.id]]]></db:input-parameters>
+		</db:select>
+		<db:select doc:name="Select Contact" doc:id="c99cc62a-481b-4352-9a84-e4bd09bc0317" config-ref="Contact_Database_Config" target="communication">
+			<db:sql >SELECT * FROM COMMUNICATION WHERE PERSON = :ID</db:sql>
+			<db:input-parameters ><![CDATA[#[ID: vars.id]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="eaf4e6a4-3c32-4e5c-9000-165582ec8a9d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Identification": {
+	    "FirstName": vars.person[0].FIRSTNAME,
+	    "DOB": vars.person[0].DOB,
+	    "LastName": vars.person[0].LASTNAME,
+	    "Gender": vars.person[0].GENDER,
+	    "Title": vars.person[0].TITLE
+	},
+	"Address": vars.address map {
+      "type": $.TYPE,
+      "number": $.NUMBER as Number,
+      "street": $.STREET,
+      "Unit": $.UNIT,
+      "City": $.CITY,
+      "State": $.STATE,
+      "zipcode": $.ZIPCODE
+	},
+	"Communication": vars.communication map {
+      "type": $.TYPE,
+      "value": $.VALUE,
+      "preferred": $.PREFERRED
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c98bb3f6-43d4-40e7-af27-b691bece29ff" >
+				<ee:transform doc:name="Transform Message" doc:id="64a0bc5e-da0b-4fed-b458-42f64761cc9c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 1,
+	message: "Internal server error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="updateContactFlow" doc:id="d84f3c95-e05b-4b08-8f3b-b92a32f75382" >
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set id Variable" doc:id="ad012105-f16a-4953-8438-7970783db1c9" variableName="id"/>
+		<logger level="INFO" doc:name="Log start" doc:id="d8aeabb8-b7ed-4901-89a7-e40a7f350d3b" message="Start updating"/>
+		<db:update doc:name="Update Contact" doc:id="e043dc18-f87e-4de7-996d-7f47b23e40de" config-ref="Contact_Database_Config">
+			<db:sql >UPDATE PERSON SET FIRSTNAME=:FIRSTNAME, LASTNAME=:LASTNAME, DOB=:DOB, TITLE=:TITLE, GENDER=:GENDER WHERE ID = :ID</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	ID: vars.id,
+	FIRSTNAME: payload.Identification.FirstName,
+	LASTNAME: payload.Identification.LastName,
+	DOB: payload.Identification.DOB,
+	GENDER: payload.Identification.Gender,
+	TITLE: payload.Identification.Title
+}]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Log start" doc:id="b757cd47-6e89-4dee-8051-6f458a798c4a" message="Delete addresses"/>
+		<db:delete doc:name="Delete Contact Addresses" doc:id="b0d53f5a-7826-4c33-bdb1-56d49d48a7d1" config-ref="Contact_Database_Config">
+			<db:sql >DELETE FROM ADDRESS WHERE PERSON = :PERSON </db:sql>
+			<db:input-parameters ><![CDATA[#[PERSON: vars.id]]]></db:input-parameters>
+		</db:delete>
+		<logger level="INFO" doc:name="Log start" doc:id="1c11cd1f-add6-48ba-943d-045ba563d2b3" message="Delete communications"/>
+		<db:delete doc:name="Delete Contact Communications" doc:id="cde08e66-cdfd-4e0e-bffa-48d227b5a9a9" config-ref="Contact_Database_Config">
+			<db:sql >DELETE FROM COMMUNICATION WHERE PERSON = :PERSON </db:sql>
+			<db:input-parameters ><![CDATA[#[PERSON: vars.id]]]></db:input-parameters>
+		</db:delete>
+		<logger level="INFO" doc:name="Log start" doc:id="cec8df3f-d839-4406-897d-65dd72cb61ff" message="Inserting addresses"/>
+		<foreach doc:name="For Each" doc:id="05923f24-a08e-4796-891b-a37c53a49cf4" collection="payload.Address">
+			<db:insert doc:name="Insert Address" doc:id="f02abbce-3df1-4a55-92c1-6adf384d2d36" config-ref="Contact_Database_Config" target="insertResponse" autoGenerateKeys="true">
+			<db:sql>INSERT INTO ADDRESS(PERSON, TYPE, NUMBER, STREET, UNIT, CITY, STATE, ZIPCODE) VALUES (:PERSON, :TYPE, :NUMBER, :STREET, :UNIT, :CITY, :STATE, :ZIPCODE)</db:sql>
+			<db:input-parameters><![CDATA[#[{
+	PERSON: vars.id,
+	TYPE: payload."type",
+	NUMBER: payload.number,
+	STREET: payload.street,
+	UNIT: payload.Unit,
+	CITY: payload.City,
+	STATE: payload.State,
+	ZIPCODE: payload.zipcode
+}]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names>
+				<db:auto-generated-keys-column-name value="ID" />
+			</db:auto-generated-keys-column-names>
+		</db:insert>
+		</foreach>
+		<logger level="INFO" doc:name="Log start" doc:id="cec8df3f-d839-4406-897d-65dd72cb61ff" message="Inserting communications"/>
+		<foreach doc:name="For Each" doc:id="0d9be4dc-8fdb-4f7c-a15e-de655cda87a7" collection="payload.Communication">
+			<db:insert doc:name="Insert Communication" doc:id="f4f266d8-54b0-4736-92cf-5f61f1ce1788" config-ref="Contact_Database_Config" target="insertResponse" autoGenerateKeys="true">
+				<db:sql>INSERT INTO COMMUNICATION(PERSON, TYPE, VALUE, PREFERRED) VALUES (:PERSON, :TYPE, :VALUE, :PREFERRED)</db:sql>
+				<db:input-parameters><![CDATA[#[{
+	PERSON: vars.id,
+	TYPE: payload."type",
+	VALUE: payload.value,
+	PREFERRED: payload.preferred
+}]]]></db:input-parameters>
+				<db:auto-generated-keys-column-names>
+					<db:auto-generated-keys-column-name value="ID" />
+				</db:auto-generated-keys-column-names>
+			</db:insert>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="73b764a3-4763-4355-9e30-62f785eebe4e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 0,
+	message: "success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0bf0ae2b-b095-46a3-8d90-a1115bf30e16" >
+				<ee:transform doc:name="Transform Message" doc:id="52ce0f54-b922-438f-aa76-ad34ebe33dec" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: 1,
+	message: "Internal server error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

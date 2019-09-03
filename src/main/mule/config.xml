@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config xmlns:http="http://www.mulesoft.org/schema/mule/http" name="challangems-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" name="challangems-api-config" raml="challangems-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<db:config name="Contact_Database_Config" doc:name="Database Config" doc:id="4376bfbf-8da9-462e-b010-389df86c16f8" >
+		<db:generic-connection url="${db.url}" user="${db.user}" password="${db.password}" driverClassName="${db.driver}"/>
+	</db:config>
+	<global-property doc:name="Global Property" doc:id="7c124394-9e72-4953-ae3e-6598b000727b" name="env" value="dev" />
+	<configuration-properties doc:name="Configuration properties" doc:id="48ec2b17-9a3c-4b3e-a80b-e8a2c98fceff" file="properties/${env}.properties" />
+
+</mule>
